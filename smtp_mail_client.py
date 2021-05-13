@@ -11,6 +11,7 @@ import socket
 import ssl
 import base64
 import re
+import getpass
 from typing import List
 
 greeting_message = '''Welcome to the SMTP Mail Client! 
@@ -27,6 +28,8 @@ message_prompt = 'Enter a message to send (Enter *END* to end the message):'
 invalid_email_prompt = 'Invalid email format, please try again: '
 mailserver =  'smtp.gmail.com'
 end_message = '\r\n.\r\n'
+email_subject = 'SMTP Mail Client'
+port = 587
 buffer_size = 1024
 
 def validate_email(email: str) -> bool:
@@ -94,7 +97,7 @@ def mail_client():
         sender = input(sender_prompt)
         while(not(validate_email(sender))):
             sender = input(invalid_email_prompt)
-        sender_password = input(password_prompt)
+        sender_password = getpass.getpass(prompt = password_prompt)
 
         # Get recipient emails
         num_recipients = validate_int(num_recipients_prompt)
@@ -107,11 +110,11 @@ def mail_client():
         for recipient in recipients:
             # Create socket called clientSocket and establish a TCP connection with mailserver
             clientSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            clientSocket.connect((mailserver, 587))
+            clientSocket.connect((mailserver, port))
 
             # Receive confirmation that socket has connected to server
             recv = clientSocket.recv(buffer_size)
-            # print(recv)
+            print('Connecting socket to server...\nServer Response: ' + str(recv))
             if('220' not in str(recv)):
                 print('220 reply not received from server.')
 
@@ -120,7 +123,7 @@ def mail_client():
             heloCommand = command.encode()
             clientSocket.send(heloCommand)
             recv1 = clientSocket.recv(buffer_size)
-            # print(recv1)
+            print('\nSending HELO command...\nServer Response: ' + str(recv1))
             if('250' not in str(recv1)):
                 print('250 reply not received from server.')
 
@@ -128,7 +131,7 @@ def mail_client():
             command = 'STARTTLS\r\n'.encode()
             clientSocket.send(command)
             recv = clientSocket.recv(buffer_size).decode()
-            # print(recv)
+            print('\nSending STARTTLS command...\nServer Response: ' + str(recv))
             if('220' not in str(recv)):
                 print('220 reply not received from server.')
 
@@ -142,7 +145,7 @@ def mail_client():
             # Authentication 
             clientSocket.send('AUTH LOGIN \r\n'.encode())
             recv1 = clientSocket.recv(buffer_size).decode()
-            # print(recv1)
+            print('Sending AUTH LOGIN command...\nServer Response: ' + str(recv1))
             if('334' not in str(recv1)):
                 print('334 reply not received from server')
             clientSocket.send(email)
@@ -157,43 +160,41 @@ def mail_client():
                 print('235 reply not received from server')
 
             # Send MAIL FROM command and print server response.
-            clientSocket.send(f"MAIL FROM: <{sender}>\r\n".encode())
+            clientSocket.send(f'MAIL FROM: <{sender}>\r\n'.encode())
             recv2 = clientSocket.recv(buffer_size).decode()
+            print('Sending MAIL FROM command...\nServer Response: ' + str(recv2))
             if('250' not in str(recv2)):
                 print('250 reply not received from server.')
-
             
             # Send RCPT TO command and print server response.
-            clientSocket.send(f"RCPT TO: <{recipient}>\r\n".encode())
+            clientSocket.send(f'RCPT TO: <{recipient}>\r\n'.encode())
             recv2 = clientSocket.recv(buffer_size).decode()
-            # print(recv2)
+            print('Sending RCPT TO command...\nServer Response: ' + str(recv2))
 
             # Send DATA command and print server response.
-            clientSocket.send("DATA\r\n".encode())
+            clientSocket.send('DATA\r\n'.encode())
             recv2 = clientSocket.recv(buffer_size).decode()
-            # print(recv2)
+            print('Sending DATA command...\nServer Resposne: ' + str(recv2))
 
             # Send data
-            clientSocket.send(("Subject: SMTP Mail Client \r\n").encode())
-            clientSocket.send((f"To: {recipient} \r\n").encode())
+            clientSocket.send((f'Subject: {email_subject} \r\n').encode())
+            clientSocket.send((f'To: {recipient} \r\n').encode())
             clientSocket.send(message.encode())
 
             # Message ends with a single period.
             clientSocket.send(end_message.encode())
             recv2 = clientSocket.recv(buffer_size).decode()
-            # print(recv2)
 
             # Send QUIT command and get server response.
-            clientSocket.send("QUIT\r\n".encode())
+            clientSocket.send('QUIT\r\n'.encode())
             recv2 = clientSocket.recv(buffer_size).decode()
-            # print(recv2)
+            print('Sending QUIT command...\nServer Response: ' + str(recv2))
 
             # Close connection with client socket
             clientSocket.close()
 
-            print('The email has been sent')
+            print('The email has been sent to ' + recipient)
+        print()
         
 if(__name__ == '__main__'):
     mail_client()
-
-# sending attachments in an email

@@ -8,7 +8,6 @@ connection with the mail server.
 
 https://wiki.eecs.yorku.ca/course_archive/2012-13/W/3214/_media/socket_programming_jan2013.pdf
 https://pythonprogramming.net/sockets-tutorial-python-3/
-https://www.chegg.com/homework-help/questions-and-answers/socket-programming-assignment-3-mail-client-attached-files-smtpclientpy-1978-kb-goal-progr-q41275549?cs_resub=1
 '''
 
 import socket
