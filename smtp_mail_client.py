@@ -107,94 +107,94 @@ def mail_client():
         message = get_message(message_prompt)
         message = '\r' + message
 
+        # Create socket called clientSocket and establish a TCP connection with mailserver
+        clientSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        clientSocket.connect((mailserver, port))
+
+        # Receive confirmation that socket has connected to server
+        recv = clientSocket.recv(buffer_size)
+        print('Connecting socket to server...\nServer Response: ' + str(recv))
+        if('220' not in str(recv)):
+            print('220 reply not received from server.')
+
+        # Send HELO command and print server response.
+        command ='HELO there\r\n'
+        heloCommand = command.encode()
+        clientSocket.send(heloCommand)
+        recv1 = clientSocket.recv(buffer_size)
+        print('\nSending HELO command...\nServer Response: ' + str(recv1))
+        if('250' not in str(recv1)):
+            print('250 reply not received from server.')
+
+        # Request an encrypted connection
+        command = 'STARTTLS\r\n'.encode()
+        clientSocket.send(command)
+        recv = clientSocket.recv(buffer_size).decode()
+        print('\nSending STARTTLS command...\nServer Response: ' + str(recv))
+        if('220' not in str(recv)):
+            print('220 reply not received from server.')
+
+        # Encrypt the socket
+        clientSocket = ssl.wrap_socket(clientSocket)
+
+        # Email and password for authentication
+        email = (base64.b64encode(sender.encode())+ ('\r\n').encode())
+        password = (base64.b64encode(sender_password.encode())+ ('\r\n').encode())
+
+        # Authentication 
+        clientSocket.send('AUTH LOGIN \r\n'.encode())
+        recv1 = clientSocket.recv(buffer_size).decode()
+        print('Sending AUTH LOGIN command...\nServer Response: ' + str(recv1))
+        if('334' not in str(recv1)):
+            print('334 reply not received from server')
+        clientSocket.send(email)
+        recv1 = clientSocket.recv(buffer_size).decode()
+        # print(recv1)
+        if('334' not in str(recv1)):
+            print('334 reply not received from server')
+        clientSocket.send(password)
+        recv1 = clientSocket.recv(buffer_size).decode()
+        # print(recv1)
+        if('235' not in str(recv1)):
+            print('235 reply not received from server')
+
+        # Send MAIL FROM command and print server response.
+        clientSocket.send(f'MAIL FROM: <{sender}>\r\n'.encode())
+        recv2 = clientSocket.recv(buffer_size).decode()
+        print('Sending MAIL FROM command...\nServer Response: ' + str(recv2))
+        if('250' not in str(recv2)):
+            print('250 reply not received from server.')
+        
         for recipient in recipients:
-            # Create socket called clientSocket and establish a TCP connection with mailserver
-            clientSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            clientSocket.connect((mailserver, port))
-
-            # Receive confirmation that socket has connected to server
-            recv = clientSocket.recv(buffer_size)
-            print('Connecting socket to server...\nServer Response: ' + str(recv))
-            if('220' not in str(recv)):
-                print('220 reply not received from server.')
-
-            # Send HELO command and print server response.
-            command ='HELO there\r\n'
-            heloCommand = command.encode()
-            clientSocket.send(heloCommand)
-            recv1 = clientSocket.recv(buffer_size)
-            print('\nSending HELO command...\nServer Response: ' + str(recv1))
-            if('250' not in str(recv1)):
-                print('250 reply not received from server.')
-
-            # Request an encrypted connection
-            command = 'STARTTLS\r\n'.encode()
-            clientSocket.send(command)
-            recv = clientSocket.recv(buffer_size).decode()
-            print('\nSending STARTTLS command...\nServer Response: ' + str(recv))
-            if('220' not in str(recv)):
-                print('220 reply not received from server.')
-
-            # Encrypt the socket
-            clientSocket = ssl.wrap_socket(clientSocket)
-
-            # Email and password for authentication
-            email = (base64.b64encode(sender.encode())+ ('\r\n').encode())
-            password = (base64.b64encode(sender_password.encode())+ ('\r\n').encode())
-
-            # Authentication 
-            clientSocket.send('AUTH LOGIN \r\n'.encode())
-            recv1 = clientSocket.recv(buffer_size).decode()
-            print('Sending AUTH LOGIN command...\nServer Response: ' + str(recv1))
-            if('334' not in str(recv1)):
-                print('334 reply not received from server')
-            clientSocket.send(email)
-            recv1 = clientSocket.recv(buffer_size).decode()
-            # print(recv1)
-            if('334' not in str(recv1)):
-                print('334 reply not received from server')
-            clientSocket.send(password)
-            recv1 = clientSocket.recv(buffer_size).decode()
-            # print(recv1)
-            if('235' not in str(recv1)):
-                print('235 reply not received from server')
-
-            # Send MAIL FROM command and print server response.
-            clientSocket.send(f'MAIL FROM: <{sender}>\r\n'.encode())
-            recv2 = clientSocket.recv(buffer_size).decode()
-            print('Sending MAIL FROM command...\nServer Response: ' + str(recv2))
-            if('250' not in str(recv2)):
-                print('250 reply not received from server.')
-            
             # Send RCPT TO command and print server response.
             clientSocket.send(f'RCPT TO: <{recipient}>\r\n'.encode())
             recv2 = clientSocket.recv(buffer_size).decode()
             print('Sending RCPT TO command...\nServer Response: ' + str(recv2))
 
-            # Send DATA command and print server response.
-            clientSocket.send('DATA\r\n'.encode())
-            recv2 = clientSocket.recv(buffer_size).decode()
-            print('Sending DATA command...\nServer Resposne: ' + str(recv2))
+        # Send DATA command and print server response.
+        clientSocket.send('DATA\r\n'.encode())
+        recv2 = clientSocket.recv(buffer_size).decode()
+        print('Sending DATA command...\nServer Resposne: ' + str(recv2))
 
-            # Send data
-            clientSocket.send((f'Subject: {email_subject} \r\n').encode())
-            clientSocket.send((f'To: {recipient} \r\n').encode())
-            clientSocket.send(message.encode())
+        # Send data
+        clientSocket.send((f'Subject: {email_subject} \r\n').encode())
+        clientSocket.send((f'To: {recipient} \r\n').encode())
+        clientSocket.send(message.encode())
 
-            # Message ends with a single period.
-            clientSocket.send(end_message.encode())
-            recv2 = clientSocket.recv(buffer_size).decode()
+        # Message ends with a single period.
+        clientSocket.send(end_message.encode())
+        recv2 = clientSocket.recv(buffer_size).decode()
 
-            # Send QUIT command and get server response.
-            clientSocket.send('QUIT\r\n'.encode())
-            recv2 = clientSocket.recv(buffer_size).decode()
-            print('Sending QUIT command...\nServer Response: ' + str(recv2))
+        # Send QUIT command and get server response.
+        clientSocket.send('QUIT\r\n'.encode())
+        recv2 = clientSocket.recv(buffer_size).decode()
+        print('Sending QUIT command...\nServer Response: ' + str(recv2))
 
-            # Close connection with client socket
-            clientSocket.close()
+        # Close connection with client socket
+        clientSocket.close()
 
-            print('The email has been sent to ' + recipient)
-        print()
+        print('The email has been sent to ' + recipient)
+        # print()
         
 if(__name__ == '__main__'):
     mail_client()
